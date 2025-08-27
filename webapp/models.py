@@ -72,8 +72,11 @@ class Product_parameters(models.Model):
 class Order(models.Model):
     customer = models.CharField(verbose_name='Имя покупателя', blank=True, null=True, max_length=256)
     customer_chat_id = models.CharField(verbose_name='Chat ID покупателя', null=True, blank=True, max_length=256)
-    order_details = models.JSONField(verbose_name='Детали заказа', default='Пока ничего нет')
+    
+    order_details = models.JSONField(verbose_name='Детали заказа', default=dict)
+    
     order_price = models.PositiveIntegerField(verbose_name='Цена заказа')
+    
     Processing = 'Заявка обрабатывается'
     Cooking = 'Готовим ваш торт'
     Transport = 'Продукт в пути'
@@ -88,16 +91,19 @@ class Order(models.Model):
                                     max_length=256,
                                     choices=order_statuses,
                                     default=Processing,)
+    
     comments = models.CharField(verbose_name='Комментарии', null=True, blank=True, max_length=256)
     delivery_address = models.CharField(verbose_name='Адрес доставки', max_length=256, default=' ')
     delivery_date = models.DateField(verbose_name='Дата доставки', blank=True, null=True)
     delivery_time = models.TimeField(verbose_name='Время доставки', blank=True, null=True)
+    
     cake_name = models.ForeignKey(Cake,
                                   verbose_name='Название торта',
                                   related_name='orders',
                                   blank=True,
                                   null=True,
                                   on_delete=models.CASCADE)
+    
     Assembly = 'Собрать свой торт'
     Ordering = 'Закзать торт'
     order_types = [
@@ -105,6 +111,16 @@ class Order(models.Model):
         (Ordering, 'Заказать торт')
     ]
     order_type = models.CharField(verbose_name='Тип заказа', max_length=17, choices=order_types, default=Ordering,)
+    
+    phone = models.CharField(verbose_name='Телефон', max_length=20, blank=True, null=True)
+    email = models.EmailField(verbose_name='Email', blank=True, null=True)
+    levels = models.CharField(verbose_name='Уровни', max_length=10, blank=True, null=True)
+    form = models.CharField(verbose_name='Форма', max_length=20, blank=True, null=True)
+    topping = models.CharField(verbose_name='Топпинг', max_length=50, blank=True, null=True)
+    berries = models.CharField(verbose_name='Ягоды', max_length=50, blank=True, null=True)
+    decor = models.CharField(verbose_name='Декор', max_length=50, blank=True, null=True)
+    words = models.CharField(verbose_name='Надпись', max_length=100, blank=True, null=True)
+    order_comments = models.CharField(verbose_name='Комментарии к заказу', max_length=256, blank=True, null=True)
 
     def __str__(self):
         date_value =  self.delivery_time.isoformat(timespec='minutes') if self.delivery_time else 'Дата не установлена'
