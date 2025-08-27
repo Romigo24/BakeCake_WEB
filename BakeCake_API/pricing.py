@@ -1,38 +1,48 @@
-COSTS = {
-    "Levels":   [0, 400, 750, 1100],
-    "Forms":    [0, 600, 400, 1000],
-    "Toppings": [0, 0, 200, 180, 200, 300, 350, 200],
-    "Berries":  [0, 400, 300, 450, 500],
-    "Decors":   [0, 300, 400, 350, 300, 200, 280],
-    "Words":    500,
+OPTIONS = {
+    "Levels": {
+        "values": ['не выбрано', '1', '2', '3'],
+        "prices": [0, 400, 750, 1100]
+    },
+    "Forms": {
+        "values": ['не выбрано', 'Круг', 'Квадрат', 'Прямоугольник'],
+        "prices": [0, 600, 400, 1000]
+    },
+    "Toppings": {
+        "values": [
+            'не выбрано', 'Без', 'Белый соус', 'Карамельный',
+            'Кленовый', 'Черничный', 'Молочный шоколад', 'Клубничный'
+        ],
+        "prices": [0, 0, 200, 180, 200, 300, 350, 200]
+    },
+    "Berries": {
+        "values": ['нет', 'Ежевика', 'Малина', 'Голубика', 'Клубника'],
+        "prices": [0, 400, 300, 450, 500]
+    },
+    "Decors": {
+        "values": [
+            'нет', 'Фисташки', 'Безе', 'Фундук',
+            'Пекан', 'Маршмеллоу', 'Марципан'
+        ],
+        "prices": [0, 300, 400, 350, 300, 200, 280]
+    },
+    "Words": 500,
 }
 
-def _as_i(x):
-    try:
-        return int(x)
-    except Exception:
-        return 0
-
-def _safe_pick(arr, idx):
-    if not isinstance(idx, int) or idx < 0 or idx >= len(arr):
-        return 0
-    return arr[idx]
 
 def calc_total(details: dict) -> int:
-    """details: dict со строковыми значениями из формы.
-       Ключи: Levels, Form, Topping, Berries, Decor, Words (строка)."""
-    lvl   = _as_i(details.get("Levels"))
-    form  = _as_i(details.get("Form"))
-    top   = _as_i(details.get("Topping"))
-    berr  = _as_i(details.get("Berries"))
-    decor = _as_i(details.get("Decor"))
-    has_words = bool(details.get("Words"))
 
-    return (
-        _safe_pick(COSTS["Levels"],   lvl)  +
-        _safe_pick(COSTS["Forms"],    form) +
-        _safe_pick(COSTS["Toppings"], top)  +
-        _safe_pick(COSTS["Berries"],  berr) +
-        _safe_pick(COSTS["Decors"],   decor)+
-        (COSTS["Words"] if has_words else 0)
-    )
+    def get_index(option_key: str) -> int:
+        return int(details.get(option_key, "0") or 0)
+
+    total_price = 0
+
+    total_price += OPTIONS["Levels"]["prices"][get_index("Levels")]
+    total_price += OPTIONS["Forms"]["prices"][get_index("Form")]
+    total_price += OPTIONS["Toppings"]["prices"][get_index("Topping")]
+    total_price += OPTIONS["Berries"]["prices"][get_index("Berries")]
+    total_price += OPTIONS["Decors"]["prices"][get_index("Decor")]
+
+    if (details.get("Words") or "").strip():
+        total_price += OPTIONS["Words"]
+
+    return total_price

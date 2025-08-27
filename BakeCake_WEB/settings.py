@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-r7v72pne!(w@%a1ay*8$-graocc!t&xl%+i(o6wjjh%&)zmrrx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'testserver']
 
 # Application definition
 
@@ -37,9 +36,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'drf_spectacular',
+
     'BakeCake_API',
+    'webapp',
 ]
 
 MIDDLEWARE = [
@@ -132,6 +134,13 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+
+    "DEFAULT_RENDERER_CLASSES": (
+        "rest_framework.renderers.JSONRenderer",
+    ),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+    ),
 }
 
 SPECTACULAR_SETTINGS = {

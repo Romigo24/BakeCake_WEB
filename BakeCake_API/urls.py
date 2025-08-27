@@ -1,12 +1,8 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import OptionsViewSet, OrdersViewSet, price_quote
-
-router = DefaultRouter()
-router.register("catalog/options", OptionsViewSet, basename="options")
-router.register("orders", OrdersViewSet, basename="orders")
+from django.urls import path
+from .views import catalog_options, price_quote, orders_create
 
 urlpatterns = [
-    path("", include(router.urls)),
-    path("price/quote", price_quote),
+    path("catalog/options/", catalog_options, name="catalog_options"),
+    path("price/quote/", price_quote, name="price_quote"),
+    path("orders/create/", orders_create, name="orders_create"),
 ]
