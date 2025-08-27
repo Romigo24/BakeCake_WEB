@@ -9,6 +9,7 @@ urlpatterns = [
     path("lk/", TemplateView.as_view(template_name="lk.html")),
     path("lk-order/", TemplateView.as_view(template_name="lk-order.html")),
     path("admin/", admin.site.urls),
+    
     path("api/v1/", include("BakeCake_API.urls")),
     
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
