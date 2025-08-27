@@ -147,3 +147,5 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "BakeCake API",
     "VERSION": "1.0.0",
 }
+
+APPEND_SLASH = True
