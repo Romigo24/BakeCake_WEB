@@ -1,6 +1,33 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from phonenumber_field.modelfields import PhoneNumberField
-import jsonfield
+
+
+class Promo(models.Model):
+    code = models.CharField(verbose_name='Промокод',max_length=50, unique=True)
+    discount_percent = models.PositiveIntegerField(
+        verbose_name='Процент скидки',
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        default=5
+    )
+    max_usage_count = models.PositiveIntegerField(
+        verbose_name='Количество использований',
+        default=1
+    )
+    current_usage_count = models.PositiveIntegerField(
+        verbose_name='Текущее количество использований',
+        default=0
+    )
+    is_active = models.BooleanField(verbose_name='Активен',default=True)
+
+    def __str__(self):
+        return f"{self.code} {self.discount_percent}%"
+
+    class Meta:
+        verbose_name = 'Промокод'
+        verbose_name_plural = 'Промокоды'
+
+
 
 class Cake(models.Model):
     name = models.CharField(verbose_name='Название торта', max_length=50)
@@ -105,6 +132,8 @@ class Order(models.Model):
         (Ordering, 'Заказать торт')
     ]
     order_type = models.CharField(verbose_name='Тип заказа', max_length=17, choices=order_types, default=Ordering,)
+
+    promo = models.ForeignKey(Promo,on_delete=models.SET_NULL,null=True, blank=True)
 
     def __str__(self):
         date_value =  self.delivery_time.isoformat(timespec='minutes') if self.delivery_time else 'Дата не установлена'
