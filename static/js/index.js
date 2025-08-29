@@ -27,6 +27,7 @@ Vue.createApp({
                     return ' топпинг';
                 }
             },
+            GDPRConsent: false,
             schema2: {
                 name: (value) => {
                     if (value) {
@@ -96,7 +97,14 @@ Vue.createApp({
                         return true;
                     }
                     return ' время доставки';
-                }
+                },
+                gdpr: (value) => {
+                    if (value) {
+                        return true;
+                    }
+                    return ' политику конфиденциальности';
+                },
+
             },
             DATA: {
                 Levels: ['не выбрано', '1', '2', '3'],

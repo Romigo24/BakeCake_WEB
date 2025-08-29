@@ -366,6 +366,7 @@
 								<error-message name="address" class="from__alert"></error-message>
 								<error-message name="date" class="from__alert"></error-message>
 								<error-message name="time" class="from__alert"></error-message>
+								<error-message name="gdpr" class="from__alert"></error-message>
 							</span>
 						</div>
 
@@ -390,8 +391,23 @@
 								<div class="d-flex">
 									<span class="cake_pink fs_40 fw-bold me-2">Итого: {{ Cost }}₽</span>
 								</div>
-								<button type="submit" class="btn btn_hover text-white rounded-pill mt-3 px-5 shadow-none cake__button cake__bg_pink">К оплате</button>
-							</div>
+								<div class="row mt-3 w-100">
+    								<div class="col-12">
+        								<div class="form-check position-relative">
+            								<v-field v-model="GDPRConsent" type="checkbox" name="gdpr" id="gdprConsent" 
+            								    class="form-check-input" :value="true" :unchecked-value="false"></v-field>
+            								<label class="form-check-label cake_blue fs_12" for="gdprConsent">
+            								    Я соглашаюсь на обработку моих персональных данных в соответствии с 
+                								<a href="/static/privacy.pdf" target="_blank" class="cake_blue">политикой конфиденциальности</a>
+            								</label>
+        								</div>
+    								</div>
+								</div>
+
+        					<button type="submit" class="btn text-white rounded-pill mt-3 px-5 shadow-none cake__button cake__bg_pink">
+            					К оплате
+        					</button>
+    					</div>
 						</div>
 					</div>
 				</v-form>
