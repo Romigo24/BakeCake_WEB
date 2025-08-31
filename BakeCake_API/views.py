@@ -1,3 +1,9 @@
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
+from django.conf import settings
+from django.utils import timezone
+from .payment_service import create_payment, check_payment_status
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
@@ -6,6 +12,59 @@ from rest_framework.views import APIView
 from BakeCake_API.serializers import OrderSerializer, LevelSerializer, FormSerializer, ToppingSerializer, \
     BerrySerializer, DecorSerializer
 from webapp.models import Order, Promo, Level, Form, Topping, Berry, Decor
+
+
+
+def create_payment_view(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+
+    return_url = request.build_absolute_uri(f'/order/{order_id}/payment/success/')
+
+    payment = create_payment(order, return_url)
+
+    order.yookassa_payment_id = payment.id
+    order.payment_status = 'pending'
+    order.save()
+
+    return redirect(payment.confirmation.confirmation_url)
+
+
+def payment_success(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+
+    if order.yookassa_payment_id:
+        payment_status = check_payment_status(order.yookassa_payment_id)
+
+        if payment_status == 'succeeded':
+            order.payment_status = 'succeeded'
+            order.payment_date = timezone.now()
+            order.save()
+
+    return render(request, 'index.html', {'order': order})
+
+
+@csrf_exempt
+def yookassa_webhook(request):
+    if request.method == 'POST':
+        import json
+        notification = json.loads(request.body)
+
+        payment_id = notification['object']['id']
+        payment_status = notification['object']['status']
+
+        order = Order.objects.get(yookassa_payment_id=payment_id)
+
+        if payment_status == 'succeeded':
+            order.payment_status = 'succeeded'
+            order.payment_date = timezone.now()
+        elif payment_status == 'canceled':
+            order.payment_status = 'canceled'
+
+        order.save()
+
+        return HttpResponse(status=200)
+
+    return HttpResponse(status=400)
 
 
 # заглушка для каталога опций
@@ -47,6 +106,7 @@ def price_quote(request):
 class OrderCakeViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().select_related('cake', 'promo', 'user')
     serializer_class = OrderSerializer
+    permission_classes = [AllowAny]
 
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def validate_promo(self, request):
@@ -64,16 +124,7 @@ class OrderCakeViewSet(viewsets.ModelViewSet):
                 "error": "Недействительный промокод"
             }, status=400)
 
-
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            user = self.request.user
-            return self.queryset.filter(user=user)
-        return Order.objects.none()
-
     def create(self, request, *args, **kwargs):
-        test =  request.data
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -88,7 +139,3 @@ class OrderCakeViewSet(viewsets.ModelViewSet):
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
-
-
-
-

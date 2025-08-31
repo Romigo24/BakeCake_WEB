@@ -218,48 +218,49 @@ Vue.createApp({
             setTimeout(() => this.$refs.ToStep4.click(), 0);
         },
         onsubmit() {
-                // this.$refs.HiddenFormSubmit.click()
-
-                const orderData = {
-                    cake: {
-                        level_id: this.Levels,
-                        form_id: this.Form,
-                        topping_id: this.Topping,
-                        berry_id: this.Berries,
-                        decor_id: this.Decor,
-                        words: this.Words,
-                        comment: this.DelivComments,
-                    },
-                    name: this.Name,
-                    phone: this.Phone,
-                    email: this.Email,
-                    address: this.Address,
-                    delivery_date: this.Dates,
-                    delivery_time: this.Time,
-                    comments: this.Comments,
-                    promo: this.PromoCode
-                };
-
-              fetch('/api/ordercake/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': this.getCSRFToken()
-                },
-                body: JSON.stringify(orderData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Успех:", data);
-                this.$refs.HiddenFormSubmit.click();
-                alert("Заказ создан успешно!");
-            })
-            .catch(error => {
-                console.error("Ошибка:", error);
-                alert("Ошибка при создании заказа");
-            });
-
+    const orderData = {
+        cake: {
+            level_id: this.Levels,
+            form_id: this.Form,
+            topping_id: this.Topping,
+            berry_id: this.Berries,
+            decor_id: this.Decor,
+            words: this.Words,
+            comment: this.Comments,
         },
+        name: this.Name,
+        phone: this.Phone,
+        email: this.Email,
+        address: this.Address,
+        delivery_date: this.Dates,
+        delivery_time: this.Time,
+        delivery_comments: this.DelivComments,
+        promo: this.PromoCode
+    };
+
+    fetch('/api/ordercake/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCSRFToken()
+        },
+        body: JSON.stringify(orderData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw new Error(err.error || 'Ошибка при создании заказа') });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Успех:", data);
+        window.location.href = `/order/${data.id}/pay/`;
+    })
+    .catch(error => {
+        console.error("Ошибка:", error);
+        alert("Ошибка при создании заказа: " + error.message);
+    });
+},
         getCSRFToken() {
             const cookie = document.cookie.match(/csrftoken=([^;]+)/);
             return cookie ? cookie[1] : '';

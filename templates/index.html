@@ -295,6 +295,7 @@
 			</section>
 			<section class="row pt-header" id="step4" v-if="Designed">
             <form class="d-none">
+				{% csrf_token %}  <!-- Добавьте эту строку -->
                 <input v-model="Levels" :value="index" type="radio" name="LEVELS" v-for="(level, index) in DATA.Levels" :key="'level-' + index">
                 <input v-model="Form" :value="index" type="radio" name="FORM" v-for="(form, index) in DATA.Forms" :key="'form-' + index">
                 <input v-model="Topping" :value="index" type="radio" name="TOPPING" v-for="(topping, index) in DATA.Toppings" :key="'topping-' + index">
