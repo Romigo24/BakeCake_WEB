@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .views import catalog_options, price_quote, orders_create
+from .views import catalog_options, price_quote, orders_create, validate_delivery_time
 
 
 @api_view(["GET"])
@@ -19,4 +19,5 @@ urlpatterns = [
     path("catalog/options/", catalog_options, name="catalog_options"),
     path("price/quote/", price_quote, name="price_quote"),
     path("orders/create/", orders_create, name="orders_create"),
+    path("delivery/validate/", validate_delivery_time, name="validate_delivery_time"),
 ]

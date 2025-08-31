@@ -122,6 +122,10 @@ class Order(models.Model):
     words = models.CharField(verbose_name='Надпись', max_length=100, blank=True, null=True)
     order_comments = models.CharField(verbose_name='Комментарии к заказу', max_length=256, blank=True, null=True)
 
+    created_at = models.DateTimeField(verbose_name='Время создания заказа', auto_now_add=True)
+    is_urgent = models.BooleanField(verbose_name='Срочный заказ', default=False)
+    urgent_surcharge = models.PositiveIntegerField(verbose_name='Наценка за срочность', default=0)
+    
     def __str__(self):
         date_value =  self.delivery_time.isoformat(timespec='minutes') if self.delivery_time else 'Дата не установлена'
         return f"{date_value}"

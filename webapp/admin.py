@@ -61,10 +61,11 @@ class ProductParametersAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'customer', 'order_status', 'order_price', 
+        'id', 'customer', 'order_status', 'order_price',
+        'is_urgent', 'urgent_surcharge', 
         'delivery_date', 'delivery_time', 'phone', 'email'
     )
-    list_filter = ('order_status', 'order_type', 'delivery_date')
+    list_filter = ('order_status', 'order_type', 'delivery_date', 'is_urgent')
     search_fields = ('customer', 'delivery_address', 'phone', 'email')
     readonly_fields = (
         'levels', 'form', 'topping', 'berries', 'decor', 
@@ -84,7 +85,13 @@ class OrderAdmin(admin.ModelAdmin):
         ('Системная информация', {
             'fields': ('order_details', 'order_type', 'cake_name')
         }),
-    )    
+    )
+
+    def is_urgent_display(self, obj):
+        if obj.is_urgent:
+            return format_html('<span style="color: red; font-weight: bold;">⚡ Срочный (+20%)</span>')
+        return "Обычный"
+    is_urgent_display.short_description = 'Тип заказа'    
 
     def customer_display(self, obj):
         return obj.customer or "Не указан"

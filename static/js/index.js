@@ -125,27 +125,272 @@ Vue.createApp({
     },
 
     async submitOrder() {
-      if (this.orderSubmittingInProgress) return;
-      this.orderSubmittingInProgress = true;
+        if (this.orderSubmittingInProgress) return;
+        this.orderSubmittingInProgress = true;
 
-      const response = await fetch(`${this.apiBaseAddress}/orders/create/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(this.buildOrderPayload()),
-      });
+        try {
+            if (!this.GDPRConsent) {
+                this.orderSubmittingInProgress = false;
+                alert("Для оформления заказа необходимо согласие на обработку персональных данных");
+                return;
+            }
 
-      let responseBody = {};
-      try { responseBody = await response.json(); } catch {}
+            if (this.Dates && this.Time) {
+                const validation = await this.validateDeliveryTime(this.Dates, this.Time);
+                if (!validation.valid) {
+                    this.orderSubmittingInProgress = false;
+                    alert(`Ошибка времени доставки: ${validation.reason}`);
+                    return;
+                }
+            }
 
-      this.orderSubmittingInProgress = false;
+            const payload = this.buildOrderPayload();
+        
+            console.log("Sending order payload:", payload);
 
-      if (response.status === 201 && responseBody && responseBody.order_id) {
-        alert("Заказ оформлен, №" + responseBody.order_id);
-      } else if (response.status === 409 && responseBody && typeof responseBody.server_total === "number") {
-        alert("Цена изменилась. Сервер: " + responseBody.server_total + "₽");
-      } else {
-        alert("Ошибка при оформлении заказа");
-      }
+            const response = await fetch(`${this.apiBaseAddress}/orders/create/`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json", 
+                    Accept: "application/json" 
+                },
+                body: JSON.stringify(payload),
+            });
+
+            let responseBody = {};
+            try { 
+                responseBody = await response.json(); 
+            } catch (jsonError) {
+                console.error("JSON parse error:", jsonError);
+            }
+
+            this.orderSubmittingInProgress = false;
+
+            switch (response.status) {
+                case 201:
+                    this.handleSuccessResponse(responseBody);
+                    break;
+                
+                case 409:
+                    this.handlePriceConflict(responseBody, payload);
+                    break;
+                
+                case 400:
+                    this.handleValidationErrors(responseBody);
+                    break;
+                
+                case 500:
+                    this.handleServerError(responseBody);
+                    break;
+                
+                default:
+                    this.handleUnknownError(response, responseBody);
+            }
+
+        } catch (networkError) {
+            this.orderSubmittingInProgress = false;
+            console.error("Network error:", networkError);
+            alert("Ошибка сети. Проверьте подключение к интернету и попробуйте снова.");
+        }
     },
-  },
+
+    handleSuccessResponse(responseBody) {
+        let message = `🎉 Заказ оформлен успешно!\nНомер заказа: #${responseBody.order_id}`;
+    
+        if (responseBody.is_urgent) {
+            message += `\n⚡ Срочный заказ! Наценка за срочность: +${responseBody.urgent_surcharge}₽`;
+        }
+    
+        message += `\n💰 Общая стоимость: ${responseBody.total}₽`;
+    
+        if (responseBody.delivery_date && responseBody.delivery_time) {
+            const deliveryDate = new Date(responseBody.delivery_date);
+            const deliveryTime = responseBody.delivery_time.substring(0, 5);
+            message += `\n📅 Дата доставки: ${deliveryDate.toLocaleDateString('ru-RU')} в ${deliveryTime}`;
+        }
+    
+        message += `\n📊 Статус: ${this.getStatusText(responseBody.status)}`;
+        message += `\n\nСпасибо за заказ! С вами свяжутся для подтверждения.`;
+
+        alert(message);
+    
+        this.resetOrderForm();
+    
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    handlePriceConflict(responseBody, payload) {
+        let message = `💰 Цена изменилась!\nНовая цена: ${responseBody.server_total}₽`;
+    
+        if (responseBody.is_urgent !== undefined) {
+            message += responseBody.is_urgent ? 
+                "\n⚡ Включена наценка за срочную доставку (+20%)" : 
+                "\n⏱️ Обычная доставка (без наценки)";
+        }
+    
+        if (confirm(message + "\n\nПродолжить оформление заказа с новой ценой?")) {
+            this.Cost = responseBody.server_total;
+            setTimeout(() => this.submitOrder(), 100);
+        }
+    },
+
+    handleValidationErrors(responseBody) {
+        let errorMessage = "❌ Пожалуйста, исправьте ошибки в форме:\n";
+    
+        if (typeof responseBody === 'object' && responseBody !== null) {
+            for (const [field, messages] of Object.entries(responseBody)) {
+                const fieldName = this.getFieldName(field);
+                errorMessage += `\n• ${fieldName}: ${Array.isArray(messages) ? messages.join(', ') : messages}`;
+            }
+        } else {
+            errorMessage += "\n• Неверные данные формы";
+        }
+    
+        errorMessage += "\n\nПожалуйста, проверьте введенные данные и попробуйте снова.";
+    
+        alert(errorMessage);
+    },
+
+    handleServerError(responseBody) {
+        let errorMessage = "⚠️ Внутренняя ошибка сервера.";
+    
+        if (responseBody && responseBody.error) {
+            errorMessage += `\n${responseBody.error}`;
+            if (responseBody.details) {
+                errorMessage += `\nДетали: ${responseBody.details}`;
+            }
+        }
+    
+        errorMessage += "\n\nПожалуйста, попробуйте позже или свяжитесь с поддержкой.";
+    
+        alert(errorMessage);
+    },
+
+    handleUnknownError(response, responseBody) {
+        console.error("Unknown error response:", response, responseBody);
+    
+        let errorMessage = `❌ Неизвестная ошибка (статус: ${response.status})`;
+    
+        if (responseBody && responseBody.error) {
+            errorMessage += `: ${responseBody.error}`;
+        }
+    
+        errorMessage += "\n\nПожалуйста, свяжитесь с поддержкой.";
+    
+        alert(errorMessage);
+    },
+
+    async validateDeliveryTime(date, time) {
+        if (!date || !time) return { valid: false, reason: "Укажите дату и время доставки" };
+    
+        try {
+            const response = await fetch(`${this.apiBaseAddress}/delivery/validate/`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json", 
+                    Accept: "application/json" 
+                },
+                body: JSON.stringify({ date, time }),
+            });
+        
+            if (response.ok) {
+                return await response.json();
+            }
+        
+            return this.clientSideTimeValidation(date, time);
+        
+        } catch (error) {
+            console.error("Validation error:", error);
+            return this.clientSideTimeValidation(date, time);
+        }
+    },
+
+    clientSideTimeValidation(date, time) {
+        try {
+            const deliveryDateTime = new Date(`${date}T${time}`);
+            const now = new Date();
+            const minDeliveryTime = new Date(now.getTime() + 5 * 60 * 60 * 1000); // +5 часов
+        
+            if (deliveryDateTime < now) {
+                return { valid: false, reason: "Время доставки не может быть в прошлом" };
+            }
+        
+            if (deliveryDateTime < minDeliveryTime) {
+                const minTimeStr = minDeliveryTime.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                return { valid: false, reason: `Минимальное время заказа - через 5 часов. Ближайшее время: ${minTimeStr}` };
+            }
+        
+            const deliveryHour = deliveryDateTime.getHours();
+            if (deliveryHour < 10 || deliveryHour >= 23) {
+                return { valid: false, reason: "Доставка возможна только с 10:00 до 23:00" };
+            }
+        
+            return { valid: true };
+        
+        } catch (error) {
+            return { valid: false, reason: "Неверный формат даты или времени" };
+        }
+    },
+
+    getStatusText(status) {
+        const statusMap = {
+            'Заявка обрабатывается': '📋 Обрабатывается',
+            'Готовим ваш торт': '👨‍🍳 В приготовлении',
+            'Продукт в пути': '🚚 В доставке',
+            'Продукт у вас': '✅ Доставлен'
+        };
+        return statusMap[status] || status;
+    },
+
+    getFieldName(field) {
+        const fieldNames = {
+            'DATE': '📅 Дата доставки',
+            'TIME': '⏰ Время доставки',
+            'NAME': '👤 Имя',
+            'PHONE': '📞 Телефон',
+            'EMAIL': '📧 Email',
+            'ADDRESS': '🏠 Адрес',
+            'LEVELS': '🎂 Количество уровней',
+            'FORM': '🔷 Форма',
+            'TOPPING': '🍯 Топпинг',
+            'BERRIES': '🍓 Ягоды',
+            'DECOR': '✨ Декор',
+            'WORDS': '💬 Надпись',
+            'gdpr': '📝 Согласие на обработку данных'
+        };
+        return fieldNames[field] || field;
+    },
+
+    resetOrderForm() {
+        this.Levels = 0;
+        this.Form = 0;
+        this.Topping = 0;
+        this.Berries = 0;
+        this.Decor = 0;
+        this.Words = "";
+        this.Comments = "";
+        this.Designed = false;
+    
+        this.Name = "";
+        this.Phone = null;
+        this.Email = null;
+        this.Address = null;
+        this.Dates = null;
+        this.Time = null;
+        this.DelivComments = "";
+        this.GDPRConsent = false;
+    
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+        this.fetchCatalogOptions();
+    
+        console.log("Форма заказа сброшена");
+    }
+  }
 }).mount("#VueApp");
