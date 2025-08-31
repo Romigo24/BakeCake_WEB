@@ -99,19 +99,30 @@ Vue.createApp({
                 }
             },
             DATA: {
-                Levels: ['не выбрано', '1', '2', '3'],
-                Forms: ['не выбрано', 'Круг', 'Квадрат', 'Прямоугольник'],
-                Toppings: ['не выбрано', 'Без', 'Белый соус', 'Карамельный', 'Кленовый', 'Черничный', 'Молочный шоколад', 'Клубничный'],
-                Berries: ['нет', 'Ежевика', 'Малина', 'Голубика', 'Клубника'],
-                Decors: [ 'нет', 'Фисташки', 'Безе', 'Фундук', 'Пекан', 'Маршмеллоу', 'Марципан']
+                Levels: [],
+                Forms: [],
+                Toppings: [],
+                Berries: [],
+                Decors: []
+                // Levels: ['не выбрано', '1', '2', '3'],
+                // Forms: ['не выбрано', 'Круг', 'Квадрат', 'Прямоугольник'],
+                // Toppings: ['не выбрано', 'Без', 'Белый соус', 'Карамельный', 'Кленовый', 'Черничный', 'Молочный шоколад', 'Клубничный'],
+                // Berries: ['нет', 'Ежевика', 'Малина', 'Голубика', 'Клубника'],
+                // Decors: [ 'нет', 'Фисташки', 'Безе', 'Фундук', 'Пекан', 'Маршмеллоу', 'Марципан']
             },
             Costs: {
-                Levels: [0, 400, 750, 1100],
-                Forms: [0, 600, 400, 1000],
-                Toppings: [0, 0, 200, 180, 200, 300, 350, 200],
-                Berries: [0, 400, 300, 450, 500],
-                Decors: [0, 300, 400, 350, 300, 200, 280],
+                Levels: [],
+                Forms: [],
+                Toppings: [],
+                Berries: [],
+                Decors: [],
                 Words: 500
+                // Levels: [0, 400, 750, 1100],
+                // Forms: [0, 600, 400, 1000],
+                // Toppings: [0, 0, 200, 180, 200, 300, 350, 200],
+                // Berries: [0, 400, 300, 450, 500],
+                // Decors: [0, 300, 400, 350, 300, 200, 280],
+                // Words: 500
             },
             Levels: 0,
             Form: 0,
@@ -131,10 +142,40 @@ Vue.createApp({
             Address: null,
             Dates: null,
             Time: null,
-            DelivComments: ''
+            DelivComments: '',
+            optionsData: null,
         }
     },
+    created() {
+        this.fetchOptions().catch(error => {
+            console.error("Ошибка загрузки опций:", error);
+        });
+    },
     methods: {
+
+        async fetchOptions() {
+            try {
+                const response = await fetch('/api/options/');
+                const data = await response.json();
+
+                this.DATA.Levels = data.levels.map(item => item.name);
+                this.DATA.Forms = data.forms.map(item => item.name);
+                this.DATA.Toppings = data.toppings.map(item => item.name);
+                this.DATA.Berries = data.berries.map(item => item.name);
+                this.DATA.Decors = data.decors.map(item => item.name);
+
+                this.Costs.Levels = data.levels.map(item => item.price);
+                this.Costs.Forms = data.forms.map(item => item.price);
+                this.Costs.Toppings = data.toppings.map(item => item.price);
+                this.Costs.Berries = data.berries.map(item => item.price);
+                this.Costs.Decors = data.decors.map(item => item.price);
+
+                this.optionsData = data;
+                this.$forceUpdate();
+            } catch (error) {
+                console.error("Ошибка загрузки опций:", error);
+            }
+        },
         async ToStep4() {
             this.promoChecked = false;
 
@@ -210,7 +251,7 @@ Vue.createApp({
             .then(response => response.json())
             .then(data => {
                 console.log("Успех:", data);
-                // this.$refs.HiddenFormSubmit.click();
+                this.$refs.HiddenFormSubmit.click();
                 alert("Заказ создан успешно!");
             })
             .catch(error => {
@@ -224,13 +265,18 @@ Vue.createApp({
             return cookie ? cookie[1] : '';
         }
     },
-   computed: {
-        Cost() {
-            let baseCost = this.Costs.Levels[this.Levels] + this.Costs.Forms[this.Form] +
-                          this.Costs.Toppings[this.Topping] + this.Costs.Berries[this.Berries] +
-                          this.Costs.Decors[this.Decor] + (this.Words ? this.Costs.Words : 0);
+ computed: {
+    Cost() {
+        if (!this.Costs.Levels.length) return 0;
 
-            return this.promoValid ? Math.round(baseCost * (1 - this.promoDiscount / 100)) : baseCost;
-        }
+        let baseCost = Number(this.Costs.Levels[this.Levels] || 0) +
+                      Number(this.Costs.Forms[this.Form] || 0) +
+                      Number(this.Costs.Toppings[this.Topping] || 0) +
+                      Number(this.Costs.Berries[this.Berries] || 0) +
+                      Number(this.Costs.Decors[this.Decor] || 0) +
+                      Number(this.Words ? this.Costs.Words : 0);
+
+        return this.promoValid ? Math.round(baseCost * (1 - this.promoDiscount / 100)) : baseCost;
     }
+}
 }).mount('#VueApp')

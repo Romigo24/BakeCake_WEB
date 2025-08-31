@@ -2,17 +2,29 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, action
 from rest_framework.permissions import AllowAny
-
-from BakeCake_API.serializers import OrderSerializer
-from webapp.models import Order, Promo
+from rest_framework.views import APIView
+from BakeCake_API.serializers import OrderSerializer, LevelSerializer, FormSerializer, ToppingSerializer, \
+    BerrySerializer, DecorSerializer
+from webapp.models import Order, Promo, Level, Form, Topping, Berry, Decor
 
 
 # заглушка для каталога опций
-class OptionsViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]
+# views.py
+class OptionsView(APIView):
+    def get(self, request):
+        levels = LevelSerializer(Level.objects.all(), many=True).data
+        forms = FormSerializer(Form.objects.all(), many=True).data
+        toppings = ToppingSerializer(Topping.objects.all(), many=True).data
+        berries = BerrySerializer(Berry.objects.all(), many=True).data
+        decors = DecorSerializer(Decor.objects.all(), many=True).data
 
-    def list(self, request):
-        return Response({"options": []})
+        return Response({
+            'levels': levels,
+            'forms': forms,
+            'toppings': toppings,
+            'berries': berries,
+            'decors': decors
+        })
 
 
 # заглушка для заказов
