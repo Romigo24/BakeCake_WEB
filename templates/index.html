@@ -265,6 +265,14 @@
                         </div>
                         <div class="col-7 col-md-8 col-lg-9 pt-2">
                             <input v-model="PromoCode" class="form-control cake__textinput" type="text" name="promo" id="promo" placeholder="Промокод">
+                            <div v-if="promoChecked">
+                                <div v-if="promoValid" class="text-success mt-1">
+                                    Промокод применен! Скидка: {{promoDiscount}}%
+                                </div>
+                                <div v-else class="text-danger mt-1">
+                                    Недействительный промокод
+                                </div>
+                            </div>
                         </div>
                     </div>
 					<div>

@@ -122,7 +122,9 @@ Vue.createApp({
             Comments: '',
             Designed: false,
             PromoCode:'',
-
+            promoValid: false,
+            promoDiscount: 0,
+            promoChecked:false,
             Name: '',
             Phone: null,
             Email: null,
@@ -133,8 +135,45 @@ Vue.createApp({
         }
     },
     methods: {
-        ToStep4() {
-            this.Designed = true
+        async ToStep4() {
+            this.promoChecked = false;
+
+            if (this.PromoCode) {
+                try {
+                    const response = await fetch('/api/ordercake/validate_promo/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.getCSRFToken()
+                        },
+                        body: JSON.stringify({ promo: this.PromoCode })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.promoChecked = true;
+
+                        if (result.valid) {
+                            this.promoValid = true;
+                            this.promoDiscount = result.discount;
+                        } else {
+                            this.promoValid = false;
+                            return;
+                        }
+                    } else {
+                        this.promoChecked = true;
+                        this.promoValid = false;
+                        throw new Error('Ошибка проверки промокода');
+                    }
+                } catch (error) {
+                    this.promoChecked = true;
+                    this.promoValid = false;
+                    console.error("Ошибка проверки промокода:", error);
+                    return;
+                }
+            }
+
+            this.Designed = true;
             setTimeout(() => this.$refs.ToStep4.click(), 0);
         },
         onsubmit() {
@@ -185,12 +224,13 @@ Vue.createApp({
             return cookie ? cookie[1] : '';
         }
     },
-    computed: {
+   computed: {
         Cost() {
-            let W = this.Words ? this.Costs.Words : 0
-            return this.Costs.Levels[this.Levels] + this.Costs.Forms[this.Form] +
-                this.Costs.Toppings[this.Topping] + this.Costs.Berries[this.Berries] +
-                this.Costs.Decors[this.Decor] + W
+            let baseCost = this.Costs.Levels[this.Levels] + this.Costs.Forms[this.Form] +
+                          this.Costs.Toppings[this.Topping] + this.Costs.Berries[this.Berries] +
+                          this.Costs.Decors[this.Decor] + (this.Words ? this.Costs.Words : 0);
+
+            return this.promoValid ? Math.round(baseCost * (1 - this.promoDiscount / 100)) : baseCost;
         }
     }
 }).mount('#VueApp')
