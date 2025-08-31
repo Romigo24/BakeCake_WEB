@@ -1,116 +1,109 @@
 from django.db import models
-from phonenumber_field.modelfields import PhoneNumberField
-import jsonfield
+from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 
-class Cake(models.Model):
-    name = models.CharField(verbose_name='Название торта', max_length=50)
-    image = models.ImageField(verbose_name='Изображение торта')
-    description = models.CharField(verbose_name='Описание', max_length=100)
-    price = models.PositiveIntegerField(verbose_name='Цена')
-    weight = models.DecimalField(verbose_name='Вес торта', max_digits=4, decimal_places=2)
+class Level(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название уровня")
+    price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
     def __str__(self):
         return self.name
-    
-    class Meta:
-        verbose_name = 'Торт'
-        verbose_name_plural = 'Торты'
 
-class Customer(models.Model):
-    external_id = models.PositiveIntegerField(
-        verbose_name='Внешний ID покупателя',
-        unique=True
-    )
-    tg_username = models.CharField('Имя покупателя в Telegram', max_length=50, blank=True)
-    first_name = models.CharField('Имя', max_length=5, blank=True, null=True)
-    last_name = models.CharField('Фамилия', max_length=256, blank=True, null=True)
-    phone_number = PhoneNumberField()
-    GDPR_status = models.BooleanField(null=True, default=False)
-    home_address = models.CharField('Домашний адрес', max_length=50, blank=True, null=True)
+class Form(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название формы")
+    price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name} (ID: {self.external_id})'
-    
-    class Meta:
-        verbose_name = 'Покупатель'
-        verbose_name_plural = 'Покупатели'
+        return self.name
 
-
-class Product(models.Model):
-    product_name = models.CharField(max_length=256)
+class Topping(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название топпинга")
+    price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
     def __str__(self):
-        return f'{self.product_name}'
-    
-    class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'Продукты'
+        return self.name
 
-
-class Product_properties(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    property_name = models.CharField(max_length=256)
+class Berry(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название ягоды")
+    price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
     def __str__(self):
-        return f'{self.property_name}'
-    
-    class Meta:
-        verbose_name = 'Свойства продукта'
-        verbose_name_plural = 'Свойства продуктов'
+        return self.name
 
+class Decor(models.Model):
+    name = models.CharField(max_length=20, verbose_name="Название декора")
+    price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
 
-class Product_parameters(models.Model):
-    product_property = models.ForeignKey(Product_properties, verbose_name='Свойства продукта', on_delete=models.CASCADE)
-    parameter_name = models.CharField(verbose_name='Название параметра', max_length=256)
-    parameter_price = models.PositiveIntegerField(verbose_name='Цена')
+    def __str__(self):
+        return self.name
 
-    class Meta:
-        verbose_name = 'Параметры продукта'
-        verbose_name_plural = 'Парметры продуктов'
+class Cake(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Название торта")
+    is_template = models.BooleanField(default=False, verbose_name="Заготовка")
+    image = models.ImageField(upload_to='cakes/', blank=True, null=True, verbose_name="Изображение")
+    level = models.ForeignKey(Level, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Уровень")
+    form = models.ForeignKey(Form, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Форма")
+    topping = models.ForeignKey(Topping, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Топпинг")
+    berry = models.ForeignKey(Berry, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Ягода")
+    decor = models.ForeignKey(Decor, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Декор")
+    words = models.CharField(max_length=100, blank=True, verbose_name="Надпись")
+    comment = models.TextField(blank=True, verbose_name="Комментарий")
 
+    def calculate_price(self):
+        price = 0
+        if self.level:
+            price += self.level.price
+        if self.form:
+            price += self.form.price
+        if self.topping:
+            price += self.topping.price
+        if self.berry:
+            price += self.berry.price
+        if self.decor:
+            price += self.decor.price
+        if self.words:
+            price += 500  # Стоимость надписи
+        return price
+
+    def __str__(self):
+        return f'Заказ {self.id}'
+
+class Promo(models.Model):
+    code = models.CharField(max_length=20, unique=True, verbose_name="Код промокода")
+    discount = models.DecimalField(max_digits=5, decimal_places=2, validators=[MinValueValidator(0)], verbose_name="Скидка в %")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+
+    def __str__(self):
+        return self.code
 
 class Order(models.Model):
-    customer = models.CharField(verbose_name='Имя покупателя', blank=True, null=True, max_length=256)
-    customer_chat_id = models.CharField(verbose_name='Chat ID покупателя', null=True, blank=True, max_length=256)
-    order_details = models.JSONField(verbose_name='Детали заказа', default='Пока ничего нет')
-    order_price = models.PositiveIntegerField(verbose_name='Цена заказа')
-    Processing = 'Заявка обрабатывается'
-    Cooking = 'Готовим ваш торт'
-    Transport = 'Продукт в пути'
-    Delivered = 'Продукт у вас'
-    order_statuses = [
-        (Processing, 'Заявка обрабатывается'),
-        (Cooking, 'Готовим ваш торт'),
-        (Transport, 'Продукт в пути'),
-        (Delivered, 'Продукт у вас'),
+    STATUS_CHOICES = [
+        ('new', 'Новый'),
+        ('processing', 'В обработке'),
+        ('completed', 'Выполнен'),
+        ('cancelled', 'Отменен'),
     ]
-    order_status = models.CharField(verbose_name='Статус заказа',
-                                    max_length=256,
-                                    choices=order_statuses,
-                                    default=Processing,)
-    comments = models.CharField(verbose_name='Комментарии', null=True, blank=True, max_length=256)
-    delivery_address = models.CharField(verbose_name='Адрес доставки', max_length=256, default=' ')
-    delivery_date = models.DateField(verbose_name='Дата доставки', blank=True, null=True)
-    delivery_time = models.TimeField(verbose_name='Время доставки', blank=True, null=True)
-    cake_name = models.ForeignKey(Cake,
-                                  verbose_name='Название торта',
-                                  related_name='orders',
-                                  blank=True,
-                                  null=True,
-                                  on_delete=models.CASCADE)
-    Assembly = 'Собрать свой торт'
-    Ordering = 'Закзать торт'
-    order_types = [
-        (Assembly, 'Собрать свой торт'),
-        (Ordering, 'Заказать торт')
-    ]
-    order_type = models.CharField(verbose_name='Тип заказа', max_length=17, choices=order_types, default=Ordering,)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Пользователь")
+    cake = models.ForeignKey(Cake, on_delete=models.CASCADE, verbose_name="Торт")
+    name = models.CharField(max_length=100, verbose_name="Имя")
+    phone = models.CharField(max_length=20, verbose_name="Телефон")
+    email = models.EmailField(verbose_name="Email")
+    address = models.TextField(verbose_name="Адрес доставки")
+    delivery_date = models.DateField(verbose_name="Дата доставки")
+    delivery_time = models.TimeField(verbose_name="Время доставки")
+    promo = models.ForeignKey(Promo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Промокод")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name="Общая стоимость", null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Статус")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    comments = models.TextField(blank=True, null=True)
+
+    def calculate_total(self):
+        total = self.cake.calculate_price()
+        if self.promo:
+            total = total * (1 - self.promo.discount / 100)
+        return total
+
 
     def __str__(self):
-        date_value =  self.delivery_time.isoformat(timespec='minutes') if self.delivery_time else 'Дата не установлена'
-        return f"{date_value}"
-    
-    class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = 'Заказы'
-
+        return f"Заказ #{self.id} от {self.created_at}"
