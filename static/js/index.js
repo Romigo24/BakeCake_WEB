@@ -121,6 +121,7 @@ Vue.createApp({
             Words: '',
             Comments: '',
             Designed: false,
+            PromoCode:'',
 
             Name: '',
             Phone: null,
@@ -135,7 +136,33 @@ Vue.createApp({
         ToStep4() {
             this.Designed = true
             setTimeout(() => this.$refs.ToStep4.click(), 0);
-        }
+        },
+        onsubmit() {
+            // this.$refs.HiddenFormSubmit.click()
+
+            const orderData = {
+                cake: {
+                    levels: this.Levels,
+                    form: this.Form,
+                    topping: this.Topping,
+                    berries: this.Berries,
+                    decor: this.Decor,
+                    words: this.Words,
+                    comments: this.Comments,
+                    promoCode: this.PromoCode
+                },
+                name: this.Name,
+                phone: this.Phone,
+                email: this.Email,
+                address: this.Address,
+                date: this.Dates,
+                time: this.Time,
+                comments: this.DelivComments
+            };
+
+        console.log(orderData)
+        // this.$refs.HiddenFormSubmit.click()
+        },
     },
     computed: {
         Cost() {
