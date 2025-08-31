@@ -1,18 +1,30 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.permissions import AllowAny
-
-from BakeCake_API.serializers import OrderSerializer
-from webapp.models import Order
+from rest_framework.views import APIView
+from BakeCake_API.serializers import OrderSerializer, LevelSerializer, FormSerializer, ToppingSerializer, \
+    BerrySerializer, DecorSerializer
+from webapp.models import Order, Promo, Level, Form, Topping, Berry, Decor
 
 
 # заглушка для каталога опций
-class OptionsViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]
+# views.py
+class OptionsView(APIView):
+    def get(self, request):
+        levels = LevelSerializer(Level.objects.all(), many=True).data
+        forms = FormSerializer(Form.objects.all(), many=True).data
+        toppings = ToppingSerializer(Topping.objects.all(), many=True).data
+        berries = BerrySerializer(Berry.objects.all(), many=True).data
+        decors = DecorSerializer(Decor.objects.all(), many=True).data
 
-    def list(self, request):
-        return Response({"options": []})
+        return Response({
+            'levels': levels,
+            'forms': forms,
+            'toppings': toppings,
+            'berries': berries,
+            'decors': decors
+        })
 
 
 # заглушка для заказов
@@ -35,6 +47,24 @@ def price_quote(request):
 class OrderCakeViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().select_related('cake', 'promo', 'user')
     serializer_class = OrderSerializer
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def validate_promo(self, request):
+        promo_code = request.data.get('promo', '').strip()
+
+        try:
+            promo = Promo.objects.get(code=promo_code, is_active=True)
+            return Response({
+                "valid": True,
+                "discount": float(promo.discount)
+            })
+        except Promo.DoesNotExist:
+            return Response({
+                "valid": False,
+                "error": "Недействительный промокод"
+            }, status=400)
+
+
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
