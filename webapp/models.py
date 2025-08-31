@@ -66,7 +66,7 @@ class Cake(models.Model):
         return price
 
     def __str__(self):
-        return self.name
+        return f'Заказ {self.id}'
 
 class Promo(models.Model):
     code = models.CharField(max_length=20, unique=True, verbose_name="Код промокода")
@@ -93,9 +93,10 @@ class Order(models.Model):
     delivery_date = models.DateField(verbose_name="Дата доставки")
     delivery_time = models.TimeField(verbose_name="Время доставки")
     promo = models.ForeignKey(Promo, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Промокод")
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name="Общая стоимость")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name="Общая стоимость", null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new', verbose_name="Статус")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    comments = models.TextField(blank=True, null=True)
 
     def calculate_total(self):
         total = self.cake.calculate_price()

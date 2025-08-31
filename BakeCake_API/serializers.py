@@ -35,22 +35,13 @@ class CakeSerializer(serializers.ModelSerializer):
     topping = ToppingSerializer(read_only=True)
     berry = BerrySerializer(read_only=True)
     decor = DecorSerializer(read_only=True)
+    name = serializers.CharField(read_only=True)
 
-    level_id = serializers.PrimaryKeyRelatedField(
-        queryset=Level.objects.all(), source='level', write_only=True, required=False, allow_null=True
-    )
-    form_id = serializers.PrimaryKeyRelatedField(
-        queryset=Form.objects.all(), source='form', write_only=True, required=False, allow_null=True
-    )
-    topping_id = serializers.PrimaryKeyRelatedField(
-        queryset=Topping.objects.all(), source='topping', write_only=True, required=False, allow_null=True
-    )
-    berry_id = serializers.PrimaryKeyRelatedField(
-        queryset=Berry.objects.all(), source='berry', write_only=True, required=False, allow_null=True
-    )
-    decor_id = serializers.PrimaryKeyRelatedField(
-        queryset=Decor.objects.all(), source='decor', write_only=True, required=False, allow_null=True
-    )
+    level_id = serializers.IntegerField(write_only=True)
+    form_id = serializers.IntegerField(write_only=True)
+    topping_id = serializers.IntegerField(write_only=True)
+    berry_id = serializers.IntegerField(write_only=True)
+    decor_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Cake
@@ -71,7 +62,7 @@ class OrderSerializer(serializers.ModelSerializer):
     cake = CakeSerializer()
     delivery_date = serializers.DateField()
     delivery_time = serializers.TimeField()
-    promo = serializers.CharField(write_only=True, required=False, allow_null=True)
+    promo = serializers.CharField(write_only=True, required=False, allow_null=True, allow_blank=True)
 
     def validate_promo(self, value):
         if value:
@@ -86,8 +77,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        sid = transaction.savepoint()
-        user = self.context['request'].user
+        # sid = transaction.savepoint()
+        # user = self.context['request'].user
         cake_data = validated_data.pop('cake')
         promo_code = validated_data.pop('promo', None)
         cake_serializer = CakeSerializer(data=cake_data)
@@ -108,9 +99,9 @@ class OrderSerializer(serializers.ModelSerializer):
             order.save()
             return order
         except Exception as e:
-            transaction.rollback(sid)
+            # transaction.rollback(sid)
             raise serializers.ValidationError(f"Ошибка при создании заказа: {str(e)}")
 
     class Meta:
         model = Order
-        fields = ['name','phone','email','address','promo']
+        fields = ['id','name','phone','email','address','promo','cake','delivery_date','delivery_time','promo','comments']
