@@ -153,6 +153,33 @@ Vue.createApp({
     },
     methods: {
 
+            async register() {
+                try {
+                    const response = await fetch('/api/register/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': this.getCSRFToken()
+                        },
+                        body: JSON.stringify({
+                            username: this.username,
+                            password: this.password,
+                            email: this.email
+                        })
+                    });
+
+                    if (response.ok) {
+                        this.success = true;
+                        this.error = '';
+                    } else {
+                        const data = await response.json();
+                        this.error = data.error || 'Ошибка регистрации';
+                    }
+                } catch (error) {
+                    this.error = 'Ошибка сети';
+                }
+        },
+
         async fetchOptions() {
             try {
                 const response = await fetch('/api/options/');
@@ -222,11 +249,11 @@ Vue.createApp({
 
                 const orderData = {
                     cake: {
-                        level_id: this.Levels,
-                        form_id: this.Form,
-                        topping_id: this.Topping,
-                        berry_id: this.Berries,
-                        decor_id: this.Decor,
+                        level_id: this.Levels + 1,
+                        form_id: this.Form + 1,
+                        topping_id: this.Topping + 1,
+                        berry_id: this.Berries + 1,
+                        decor_id: this.Decor + 1,
                         words: this.Words,
                         comment: this.DelivComments,
                     },
