@@ -13,12 +13,12 @@ YOOKASSA_SECRET_KEY = env.str('YOOKASSA_SECRET_KEY')
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-r7v72pne!(w@%a1ay*8$-graocc!t&xl%+i(o6wjjh%&)zmrrx'
+SECRET_KEY = env.str('SECRET_KEY')
 
 
-DEBUG = True
+DEBUG = env.bool('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.str('ALLOWED_HOSTS')
 
 
 INSTALLED_APPS = [
